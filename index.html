@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <meta charset="utf‐8">
+    <title> WebAudio Instrument v1</title>
+    </head>
+  <body>
+    <div class="container">
+        <div class="row">
+            <a href="./blogpost.html">Read About Me!</a>
+        </div>
+        <div class="row">
+            <div class="row">
+                Global Controls
+            </div>
+        <div class="row">
+            
+            <div class="col-md-4">
+                Speed
+                <input type="range" min="1" max="100" value="100" class="slider" id='tempo'>
+
+            <div>
+                Volume
+                <input type="range" min="1" max="100" value="50" class="slider" id="globalGain">
+              </div>
+        
+            </div>
+
+        </div>
+        
+        <div class="col-sm-4 p-2">
+            <div class= "row">
+                <h3>beats</h3>
+            </div>
+            
+            <div class= "row">
+                <button type="button" id='crunch'>Crunch</button>
+                <row>
+                    Crunch Beat
+                    <row>
+                        <input type="radio" name="crunchpos" value="0.0" checked>1 
+                        <input type="radio" name="crunchpos" value="0.25">2 
+                        <input type="radio" name="crunchpos" value="0.50">3
+                        <input type="radio" name="crunchpos" value="0.75">4
+                      </row>
+                    <div>
+                        Crunch Volume
+                        <input type="range" min="1" max="100" value="50" class="slider" id="crunchGain">
+                      </div>
+                </row>
+            </div>
+
+            <div class= "row">
+                <button type="button" id='bassbeat'>Bass</button>
+                <div>
+                    <input type="checkbox" id="basscomplexity" name="basscomplexity" value="basscomplexity">
+                    <label for="basscomplexity">Complexity</label>
+                </div>
+                <row>
+                    <div>
+                        Bass Volume
+                        <input type="range" min="1" max="100" value="50" class="slider" id="bassGain">
+                      </div>
+                </row>
+            </div>
+            <div class= "row">
+                <button type="button" id="noisebeat">Noise</button>
+
+                <row>
+                    <input type="radio" name="noisenotelength" value="4n">1/4 
+                    <input type="radio" name="noisenotelength" value="8n" checked>1/8 
+                    <input type="radio" name="noisenotelength" value="16n">1/16
+                  </row>
+
+                  <row>
+                    <div>
+                        Noise Volume
+                        <input type="range" min="1" max="100" value="50" class="slider" id="noiseGain">
+                      </div>
+                </row>
+            </div>
+
+        </div>
+
+        <div class="col-sm-4 p-2">
+            <div class= "row">
+                <h3>riffs</h3>
+            </div>
+
+            <input type="text" id="keyInput">Key</input>
+
+            <div class= "row">
+                
+                <button type="button" id='arpeggio'>Arpeggio</button>
+                <div>
+                    <input type="checkbox" id="updown" name="updown" value="updown">
+                    <label for="updown">Up-down</label>
+                    <input type="checkbox" id="highnote" name="highnote" value="highnote">
+                    <label for="highnote">High note</label>
+                    <input type="checkbox" id="wahwah" name="wahwah" value="wahwah">
+                    <label for="wahwah">Wah-wah</label>
+                  </div>
+                  <row>
+                    <input type="radio" name="notelength" value="4n">1/4 
+                    <input type="radio" name="notelength" value="8n">1/8 
+                    <input type="radio" name="notelength" value="16n" checked>1/16
+                  </row>
+                  <row>
+                    <div>
+                        Arp Volume
+                        <input type="range" min="1" max="100" value="50" class="slider" id="arpGain">
+                      </div>
+                  </row>
+            </div>
+            <div class="row">
+                <button type="button" id="chords">Chords</button>
+                <row>
+                    Chord Beat
+                    <row>
+                        <input type="radio" name="chordpos" value="0.0" checked>1 
+                        <input type="radio" name="chordpos" value="0.25">1.5 
+                        <input type="radio" name="chordpos" value="0.50">2
+                        <input type="radio" name="chordpos" value="0.75">2.5
+                        <input type="radio" name="chordpos" value="1.00">3
+                        <input type="radio" name="chordpos" value="1.25">3.5
+                        <input type="radio" name="chordpos" value="1.50">4
+                      </row>
+                    <div>
+                        Chord Volume
+                        <input type="range" min="1" max="200" value="50" class="slider" id="chordGain">
+                      </div>
+
+                  </row>
+            </div>
+
+            <div class= "row">
+                <button type="button" id='riff1'>Riff</button>
+                <row>
+                    <div>
+                        Riff Volume
+                        <input type="range" min="1" max="100" value="50" class="slider" id="riff1Gain">
+                      </div>
+                  </row>
+            </div>
+        </div>
+
+        <div class="col-sm-4 p-2">
+            <div class= "row">
+                <h3>sound effects</h3>
+            </div>
+            <div class= "row">
+                <button type="button" id='wobble'>Wobble</button>
+                <button type="button" id='polynomial'>Polynomial</button>
+                <button type="button" id='landing'>Landing</button>
+            </div>
+            <div class= "row">
+                <div>
+                    Effects Volume
+                    <input type="range" min="1" max="100" value="50" class="slider" id="effectsGain">
+                  </div>
+            </div>
+
+        </div>
+    </div>
+        <div class="row">
+            <button type="button" id='stop'>Stop All</button>
+        </div>
+
+    </div>
+    
+  </body>
+  <script src="./node_modules/tone/build/Tone.js"></script>
+  <script src="instrument.js"> </script>
+  <script src="bitcrusher.js"> </script>
+</html>

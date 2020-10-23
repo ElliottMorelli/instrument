@@ -1,0 +1,324 @@
+<h2>Creating a WebAudio Instrument </h2>
+<h4>Elliott Morelli</h4>
+
+<p>
+Before diving into WebAudio this semester, I had never explored the intersection of computer science and music before. Although I have played several instruments(guitar,piano) and done some limited recording/mixing, the world of oscillators, filters, EQ, etc. was largely new to me. While experimenting with pure WebAudio, I found myself wishing there was an easier way to create musical compositions with the tool. In the spirit of live coding, I wanted to create something using WebAudio that would allow people to create patterned compositions on the fly. 
+</p>
+
+<p>
+I decided to create a "WebAudio Instrument" that would let a user input a key, and generate riffs and chords that would loop according to that key. These riffs and chords would have customizable timing and shapes, to allow for The instrument would also include several toggleable looping beats, with options to control note-length and complexity. 
+</p>
+
+<h3>
+Working with looping beats and riffs in JavaScript
+</h3>
+
+<p>
+In order to create looping beats and riffs, I used a JavaScript worker object, which allows a separate JavaScript file to run in a context separate from the current JavaScript "window". Data is sent between the JavaScript worker to the main thread through the postMessage() and onmessage() methods.
+</p>
+
+<p>
+In a function called initEffects(), I create a JavaScript worker, and call this function when I want looping effects to start.
+
+First  a Blob is created as such:
+</p>
+<code>
+var timerWorkerBlob = new Blob([
+            "var timeoutID=0;function schedule(){timeoutID=setTimeout(function(){postMessage('schedule'); schedule();},100);} onmessage = function(e) { if (e.data == 'start') { if (!timeoutID) schedule();} else if (e.data == 'stop') {if (timeoutID) clearTimeout(timeoutID); timeoutID=0;};}"]);
+</code>
+<p>
+The worker is instantiated using this Blob:
+</p>
+<code>
+var timerWorkerBlobURL = window.URL.createObjectURL(timerWorkerBlob);
+    
+        timerWorker = new Worker(timerWorkerBlobURL);
+        timerWorker.onmessage = function(e) {
+          schedule();
+        };
+</code>
+
+<p>
+This code was originally sourced and adapted from https://github.com/cwilso/MIDIDrums/tree/master/js , which is a drum machine that uses a similar technique to sequence drum beats. 
+</p>
+<p>
+The worker is started and stopped like so:
+</p>
+<code>
+timerWorker.postMessage('start');
+
+
+timerWorker.postMessage('stop');
+</code>
+
+<p>
+These calls correspond to the conditional logic in the Blob.
+The worker calls a schedule() function continuously unless it times out or is stopped. The worker begins to make calls to schedule() when prompted by the postMessage() function with a value of "start", and stops when the postMessage() function is called in the current JS window with a value of "stop". 
+</p>
+
+<h3>
+The schedule() function
+</h3>
+
+<p>
+schedule() calls helper functions that update gain and noteLength values for effects, calls the helper functions of any effects that are selected and then calls advanceNote(), which increments a variable called noteTime. 
+
+noteTime is used to create the variable contextPlayTime like so:
+</p>
+<code>
+ var contextPlayTime = noteTime + startTime;
+</code>
+<p>
+contextPlayTime is the argument used when calling helper functions of selected effects, so when it is incremented this is what allows them to play as a loop.
+</p>
+
+<h3>
+Defining effect loops (riffs and beats) in JavaScript
+</h3>
+
+<p>
+So, we have a JavaScript worker that continuously makes callbacks to a sequence() function. How can we get schedule() to play the correctly selected riffs and beats? 
+
+I decided to structure my riffs and beats in an a list of objects called "effects", where the structure of each object is formatted like so:
+</p>
+<code>
+{
+          "id": 0,
+          "name": "crunch",
+          "selected": false,
+          "element": crunchBeat
+        }</code>
+ 
+
+<p>
+Here, "id" refers to the effect's position in the list, "name" is the name of the effect(for dev use), "selected" refers to whether or not the effect’s button is currently selected, and "element" refers to the HTML button element that corresponds to the effect.
+Each element has an onclick event handler that calls an updateEffects() function.
+</p>
+<p>
+Currently, I have implemented 6 looping effects: three beats, two "key-corresponding" riffs, and one "key-corresponding" chord.
+</p>
+<h3>
+So how do the effects start...when is initEffects() called?
+</h3>
+<p>
+Since we want effects to start and stop looping when a button is clicked in our HTML DOM, I created click handlers for each effect button that make calls to function updateEffectsList(index), where index corresponds to the effect’s position in the list of effects. 
+</p>
+<p>
+updateEffectsList(index) toggles the "selected" attribute for the effect that calls it, and calls another function initEffects() if the javascript worker is not already running. It also stops the worker if there are no currently selected effects by calling checkRunning() .
+</p>
+<h3>
+Cycle and Rhythm values when working with schedule()
+</h3>
+<p>
+Because I am working with both beats and riffs, I set up schedule() to only call the riff functions on every other callback, using a cycle variable. This means that each beat is called twice for every riff.
+</p>
+
+<h3>
+Making Beats and Tone.js
+</h3>
+
+<p>
+I started creating this instrument working with pure WebAudio, so the first beat that I created (Crunch) is made with two WebAudio BufferSource that are created from a white noise buffer. The white noise buffer's function is multiplied by 6, increasing the clipping..hence the name crunch. The second BufferSource is connected to a chain of low pass filters, giving it a deeper sound. 
+</p>
+
+
+<p>
+These two BufferSources are syncopated and the beat in the measure that they begin on is defined on the frontend by a series of radio buttons. On the back end, the selected value of the radio button determines the value of “offset” which is added to the starting time of each BufferSource. 
+</p>
+
+<p>
+After creating "crunch" I decided to switch to using the WebAudio library Tone.js, as it allows for inputs of note values (for note length and pitch), and a wider range of oscillators than pure WebAudio. </p>
+
+<p>
+For the Bass Beat, I use three Tone.js FMOscillators pitched down to 1st octave so that they are almost percussive. Two of the oscillators aren't started unless the beat's "complexity" option is checked. I want to work more on this beat for future versions as there is residual clipping at times.
+</p>
+
+<h3>
+Editing Rhythms using Tone.js and offset
+</h3>
+<p>
+Tone.js allows note lengths (4n,8n,16n) to be passed into its synths, to specify the amount of time that a note should play. I used this feature to make the note lengths editable for two effects:one beat and one riff. 
+</p>
+
+<p>
+Here is example code for one note being played: 
+</p>
+<code>
+synth.triggerAttackRelease(note, "16n", now+offset);
+</code>
+<p>
+This code is called in a loop, and offset is incremented at the end of the loop:
+</p>
+<code>
+offset = offset + increment;
+</code>
+<p>
+The value of increment varies depending on the notelength.
+For 16th notes, increment = .125
+For 8th notes, increment - .25
+For quarter notes, increment = .5
+</p>
+<p>
+Similarly, the amount of loops varies depending on the notelength, with twice as many loops for 16th notes as for 8th notes, and so on and so forth. 
+</p>
+<h3>
+Interactive on Beat for Rhythm variation
+</h3>
+<p>
+To give the user the ability to change which beat an effect starts on, I take input from the radio button in the HTML and use it to change the "offset" variable which is used when notes are played. 
+</p>
+
+<p>For beats:</p>
+<ol>
+<li>Beat 1 - offset 0</li>
+<li>Beat 2 - offset 0.25</li>
+<li>Beat 3 - offset 0.50</li>
+<li>Beat 4 - offset 0.75</li>
+</ol>
+<p>
+Since chords/riffs are played on every other call to schedule(), their offsets are twice as great.
+</p>
+<p>
+For chords:
+</p>
+<ol>
+<li>Beat 1 - offset 0</li>
+<li>Beat 2 - offset 0.50</li>
+<li>Beat 3 - offset 1</li>
+<li>Beat 4 - offset 1.50</li>
+</ol>
+<p>
+I added in this functionality to allow the user to syncopate the chords and crunch beat with other instrument patterns.
+</p>
+
+<h3>
+Creating Key Mappings and Chord Mappings
+</h3>
+
+<p>
+One of the most important features when I went into creating this project was the key mapping feature. I wanted a user to be able to create varied compositions by choosing the key that the riffs would play in. 
+</p>
+<p>
+I implemented this by creating several hard-coded maps: Firstly, I created a map where the "key" for each value was the musical key itself, and the value corresponded to an array of chords in that key. Secondly, I created a map where the "key" for each value was the chord, and the value corresponded to an array of notes in that chord. I made each of these arrays of notes length 4, so that when I iterated through them in the schedule() loop they would correspond to 4/4 time. 
+</p>
+
+<p>
+The default key of the instrument is C, but it can be changed by writing in a new value in the input box at the top of the "riffs" column. 
+</p>
+<p>
+Example of C Key mapping: 
+</p>
+<code>
+"C": ["C","Dm","Em","F","G","Am"],
+</code>
+<p>
+Each value in the list represents a chord. The instrument cycles through this chord list.
+Let’s use that first value, C, to examine the chord mapping:
+</p>
+<code>
+"C":["C4","E4","G4","C5"]
+</code>
+<p>
+Each value in the list is a note value that can be directly fed into a Tone.js synth or oscillator and played. 
+</p>
+
+<h3>
+The checkKey() function
+<h3>
+
+<p>
+In schedule(), before a riff is played, the checkKey() function is called. This function ensures that the key entered is one of the currently supported keys. If so, it updates the keyInput variable with the new value. If the key entered is not supported, the instrument remains in the key of C. 
+**Further versions of the instrument will show an error.
+</p>
+<h3>
+The getChord(key) function
+</h3>
+
+<p>
+This function takes in a key, accesses the keyMap, and returns a chord. It iterates through the array of chords in a key by using a counter called “sequence”, resetting the index to 0 once the array of chords has been traversed. 
+</p>
+<h3>
+Using the chord returned from getChord() to play riffs, chords
+</h3>
+<h4>
+Arpeggio:
+</h4>
+<p>
+The arpeggio effect uses for loops to iterate through the chord returned by getChord(). For sixteenth notes and eighth notes, the chord array is iterated through twice. 
+</p>
+<p>
+When played with sixteenth or eighth notes, Arpeggio has an additional shape, upDown, which plays the notes in the chord first forwards and then backwards (by entering a different for loop). I created this additional shape to add variation to the arpeggio. 
+For the sound of the arpeggio itself, I use both a Tone.js pluckSynth and a Tone.js Synth. The pluck synth plays at a higher frequency, which gives complexity to the sound. 
+</p>
+<p>
+I also implemented an option "highnote", that when selected lowers pitches from the 4th octave to the 3rd, but also allows pitches in the 5th octave to play. All of the chords include pitches in the 4th and 5th octave, and when this option is not selected the notes in the 5th octave are pitched to the 4th octave. This is another option for the user to add complexity to the pattern. 
+</p>
+<h4>
+Chord:
+</h4>
+<p>
+The chord effect uses Tone.js' PolySynth, which takes arrays of notes as an argument. It then simply plays that chord on whatever beat is specified by the user.
+</p>
+<h4>
+Riff:
+</h4>
+
+<p>
+The riff effect uses Tone.js' DuoSynth, pitches the current chord down two octaves, and plays three notes (1 1 0) out of the current chord’s note list. I added this riff to include an element of harmonicity and composition to the instrument. The DuoSynth and the down pitching gives the riff a darker feel, which I like. 
+</p>
+
+<h3>
+Outside of the Loop: Sound Effects
+</h3>
+<p>
+I included three sound effects in this instrument that are built from Tone.js oscillators and effects. Although they are fairly bare-bones right now, they allow a user to play either a wobble sound using reverb and vibrato from Tone, a sound formed with a synth and polynomial waveshaper using Tone.Chebyshev(40), or a "landing" sound that’s made by ramping the frequency of a Tone.js FatOscillator down. 
+These were just to add some fun functionality to the instrument. 
+</p>
+<h3>
+Gain controls
+ </h3>
+
+<p>
+Each effect has its own GainNode whose value is controlled through a slider. All of these GainNodes are connected to a GlobalGain, whose value is controlled by the top slider. 
+One caveat to this is that because the "crunch" beat is built with pure WebAudio, its gain is technically controlled through a separate globalGain, but the value of the webaudioGlobalGain is always equal to the value of the other globalGain as they are controlled by the same slider at the top.
+</p>
+<h3>
+Speed controls
+</h3>
+<p>
+The way that the speed slider at the top currently works is that it, when decreased, increases the time it takes for an effect to loop. However, it does not change the actual speed of the Tone.js effect itself. Therefore, the arpeggio will only play at a reduced frequency, not sounding "slower". In the future, I would like to look into the relationship between user control of note values and user control of tempo, and further explore that. 
+</p>
+
+<p>
+So,
+</p>
+<p>
+What I ended up with: A fun tool to play around with to make electronic music in many keys. 
+The current supported keys are: </p>
+<ol>
+     <li>   "Cm"   </li> 
+        <li>    "Dm"   </li> 
+       <li>     "Em"   </li> 
+         <li>   "Fm"   </li> 
+     <li>       "Am"   </li> 
+          <li>  "Bm"   </li> 
+    <li>        "C"   </li> 
+       <li>     "C#"   </li> 
+      <li>      "D"   </li> 
+   <li>         "E"   </li> 
+     <li>       "F"   </li> 
+     <li>       "F#"   </li> 
+       <li>     "G"   </li> 
+       <li>     "Ab"   </li> 
+     <li>       "A"   </li> 
+      <li>      "Bb"   </li> 
+      <li>      "B"   </li> 
+</ol>
+<p>
+Where I would like to take this:
+I want to make it more interactive. I would like users to be able to drag and drop notes to make their own riffs, so it is not all hard-coded.
+Better organized tempo/rhythm system
+Organization of gain nodes in data structure 
+When continuing work on this project, I may look into a different looping system than a JS worker, as I notice some syncing problems (waiting a bit for the song to sync up) in the current implementation.
+</p>
+<p> Thanks for reading!! </p>
